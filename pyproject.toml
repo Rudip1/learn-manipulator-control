@@ -1,0 +1,36 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.12"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "manipulator_control"
+version = "0.1.0"
+description = "Kinematic control of manipulators, from one Jacobian to many prioritized tasks: C++ library with Python bindings"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.23", "matplotlib>=3.6"]
+
+[project.optional-dependencies]
+# Pinocchio ("pin" on PyPI) is used only as an independent reference in tests and notebooks.
+test = ["pytest>=7", "pin>=2.7"]
+notebooks = ["pin>=2.7", "nbformat>=5", "nbclient>=0.7", "ipykernel>=6"]
+
+[project.urls]
+Homepage = "https://github.com/Rudip1/learn-manipulator-control"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+cmake.version = ">=3.20"
+build-dir = "build/{wheel_tag}"
+wheel.packages = ["python/manipulator_control"]
+wheel.exclude = ["**.cpp"]
+sdist.exclude = ["build", "2_notebooks/exercises"]
+
+[tool.scikit-build.cmake.define]
+MC_BUILD_PYTHON = "ON"
+MC_BUILD_TESTS = "OFF"
+MC_BUILD_EXAMPLES = "OFF"
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]

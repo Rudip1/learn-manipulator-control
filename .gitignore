@@ -1,0 +1,31 @@
+# Build output
+build/
+_skbuild/
+dist/
+*.egg-info/
+*.so
+*.pyd
+*.o
+*.a
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+desktop.ini
+*.asv
+
+# Archives of code
+*.zip
+*.tar.gz
+*.tgz

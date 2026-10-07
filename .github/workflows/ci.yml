@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-test-notebooks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: System packages
+        run: sudo apt-get update && sudo apt-get install -y libeigen3-dev clang-format
+
+      - name: Check C++ formatting
+        run: make format-check
+
+      - name: Install the Python module (builds the C++ core)
+        run: python -m pip install -e ".[test,notebooks]"
+
+      - name: C++ build and tests
+        run: make test-cpp
+
+      - name: Python tests
+        run: make test-python
+
+      - name: Exercise notebooks in sync, solution notebooks execute
+        run: make notebooks
