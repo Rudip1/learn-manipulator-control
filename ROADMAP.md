@@ -10,4 +10,4 @@ Chapters follow `docs/CHAPTER_PLAN.md`; each finished chapter has its theory tex
 - [x] 06 Redundancy and null space
 - [x] 07 Task-priority control
 - [x] 08 Inequality tasks
-- [ ] 09 Mobile manipulators
+- [x] 09 Mobile manipulators

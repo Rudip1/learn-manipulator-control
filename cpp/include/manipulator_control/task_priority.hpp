@@ -31,6 +31,9 @@ struct PriorityConfig {
     double damping = 0.05;                                 ///< lambda of the DLS inverse
     /// Per-entry speed limit on u; the command is scaled down uniformly to respect it.
     double max_speed = std::numeric_limits<double>::infinity();
+    /// Diagonal of the weight W on u (empty: W = I). Every level then minimises u^T W u instead of |u|^2, so a
+    /// large weight makes that entry move less (chapter 9, eq. 9.8).
+    Eigen::VectorXd weights;
 };
 
 /// One level of the hierarchy: Jacobian J_i (m_i x n) and desired task velocity v_i.

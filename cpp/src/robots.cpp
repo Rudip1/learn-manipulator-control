@@ -32,4 +32,9 @@ SerialChain stanford() {
                         {0.0, 0.0, 0.263, 0.0, JointType::Revolute}});
 }
 
+SerialChain anthropomorphic(double d1, double a2, double a3) {
+    //        a    alpha    d    theta
+    return SerialChain({{0.0, kHalfPi, d1, 0.0}, {a2, 0.0, 0.0, 0.0}, {a3, 0.0, 0.0, 0.0}});
+}
+
 }  // namespace manipulator_control::robots

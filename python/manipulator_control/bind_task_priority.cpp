@@ -6,6 +6,7 @@
 
 #include <limits>
 
+#include "manipulator_control/mobile_manipulator.hpp"
 #include "manipulator_control/robot_model.hpp"
 #include "manipulator_control/task_priority.hpp"
 #include "manipulator_control/tasks.hpp"
@@ -27,6 +28,18 @@ void bind_task_priority(py::module_& m) {
         m, "SerialArmModel", "Fixed-base arm: u = qdot, frames are the DH frames, -1 the end effector.")
         .def(py::init<mc::SerialChain>(), py::arg("chain"))
         .def_property_readonly("chain", &mc::SerialArmModel::chain);
+
+    m.def("base_transform", &mc::base_transform, py::arg("eta"), "Pose (x, y, psi) as a 4x4 transform (eq. 9.3).");
+    m.def("integrate_unicycle", &mc::integrate_unicycle, py::arg("eta"), py::arg("omega"), py::arg("v"),
+          py::arg("dt"), "Exact unicycle step: an arc, or a segment for omega = 0 (eq. 9.6).");
+    py::class_<mc::MobileManipulator, mc::RobotModel, std::shared_ptr<mc::MobileManipulator>>(
+        m, "MobileManipulator",
+        "Unicycle base + arm: q = (x, y, psi, q_arm), u = (omega, v, qdot_arm); frames -1 EE, 0 base, "
+        "1..n+1 arm DH frames 0..n (eqs. 9.3-9.6).")
+        .def(py::init<mc::SerialChain, const Eigen::Matrix4d&>(), py::arg("arm"), py::arg("mount"))
+        .def_property_readonly("arm", &mc::MobileManipulator::arm)
+        .def_property_readonly("mount", &mc::MobileManipulator::mount)
+        .def_property_readonly("arm_dof", &mc::MobileManipulator::arm_dof);
 
     py::class_<mc::Task, std::shared_ptr<mc::Task>>(m, "Task", "A task: Jacobian, error, gain, feedforward.")
         .def_property_readonly("name", &mc::Task::name)
@@ -60,21 +73,24 @@ void bind_task_priority(py::module_& m) {
         .value("SingularityRobust", mc::PriorityMethod::SingularityRobust);
 
     py::class_<mc::PriorityConfig>(m, "PriorityConfig")
-        .def(py::init([](mc::PriorityMethod method, mc::InverseMethod inverse, double damping, double max_speed) {
+        .def(py::init([](mc::PriorityMethod method, mc::InverseMethod inverse, double damping, double max_speed,
+                         const Eigen::VectorXd& weights) {
                  mc::PriorityConfig c;
                  c.method = method;
                  c.inverse = inverse;
                  c.damping = damping;
                  c.max_speed = max_speed;
+                 c.weights = weights;
                  return c;
              }),
              py::arg("method") = mc::PriorityMethod::Recursive,
              py::arg("inverse") = mc::InverseMethod::Pseudoinverse, py::arg("damping") = 0.05,
-             py::arg("max_speed") = std::numeric_limits<double>::infinity())
+             py::arg("max_speed") = std::numeric_limits<double>::infinity(), py::arg("weights") = Eigen::VectorXd())
         .def_readwrite("method", &mc::PriorityConfig::method)
         .def_readwrite("inverse", &mc::PriorityConfig::inverse)
         .def_readwrite("damping", &mc::PriorityConfig::damping)
-        .def_readwrite("max_speed", &mc::PriorityConfig::max_speed);
+        .def_readwrite("max_speed", &mc::PriorityConfig::max_speed)
+        .def_readwrite("weights", &mc::PriorityConfig::weights);
 
     py::class_<mc::PriorityLevel>(m, "PriorityLevel")
         .def(py::init([](const Eigen::MatrixXd& J, const Eigen::VectorXd& v) { return mc::PriorityLevel{J, v}; }),

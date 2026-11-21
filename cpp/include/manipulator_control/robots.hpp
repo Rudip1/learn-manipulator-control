@@ -19,4 +19,8 @@ SerialChain puma560();
 /// sec. 2.9.6). Link offsets d2 = 0.154 m and d6 = 0.263 m.
 SerialChain stanford();
 
+/// Anthropomorphic (elbow) arm with three revolute joints (Siciliano et al., sec. 2.9.3): a vertical waist
+/// joint at height @p d1, then shoulder and elbow about horizontal axes with link lengths @p a2 and @p a3.
+SerialChain anthropomorphic(double d1 = 0.1, double a2 = 0.3, double a3 = 0.25);
+
 }  // namespace manipulator_control::robots

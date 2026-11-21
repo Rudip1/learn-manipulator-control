@@ -7,6 +7,7 @@ foreach(example
     06_redundancy
     07_task_priority
     08_inequality_tasks
+    09_mobile_manipulator
 )
     add_executable(${example} ${example}.cpp)
     target_link_libraries(${example} PRIVATE manipulator_control)

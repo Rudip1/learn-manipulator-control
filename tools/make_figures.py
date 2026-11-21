@@ -418,7 +418,85 @@ def chapter_8():
     save(fig, "08_obstacle.png")
 
 
-CHAPTERS = {1: chapter_1, 2: chapter_2, 3: chapter_3, 4: chapter_4, 5: chapter_5, 6: chapter_6, 7: chapter_7, 8: chapter_8}
+def mobile_robot():
+    """Section 9.5: anthropomorphic arm mounted 0.1 m ahead of the base origin, 0.2 m up."""
+    mount = np.eye(4)
+    mount[:3, 3] = [0.1, 0.0, 0.2]
+    return mc.MobileManipulator(mc.robots.anthropomorphic(), mount)
+
+
+def mobile_run(weights, elbow_limit=False, target=(2.0, 1.0, 0.3), steps=1500):
+    robot = mobile_robot()
+    T = np.eye(4)
+    T[:3, 3] = target
+    ee = mc.FrameTask("ee", -1, [0, 1, 2], T)
+    elbow = mc.JointLimitTask("elbow", 4, -2.5, -0.5, 0.05, 0.15)
+    elbow.set_gain(0.5)
+    cfg = mc.PriorityConfig(inverse=mc.InverseMethod.DampedLeastSquares, damping=0.05,
+                            weights=np.asarray(weights, dtype=float))
+    q0 = np.array([0.0, 0.0, 0.0, 0.0, 0.6, -1.2])
+    return robot, mc.simulate_task_priority(robot, q0, [elbow, ee] if elbow_limit else [ee], cfg, 0.01, steps)
+
+
+def arm_manipulability(robot, q):
+    J = robot.frame_jacobian(q, -1)[:3, 2:]
+    return np.sqrt(max(np.linalg.det(J @ J.T), 0.0))
+
+
+def draw_mobile_top(ax, robot, q, color):
+    x, y, psi = q[:3]
+    ax.add_patch(plt.Circle((x, y), 0.17, color=color, alpha=0.25))
+    ax.plot([x, x + 0.17 * np.cos(psi)], [y, y + 0.17 * np.sin(psi)], color=color, linewidth=2)
+    pts = np.array([robot.frame_pose(q, k)[:2, 3] for k in range(1, robot.arm_dof + 2)] + [robot.frame_pose(q, -1)[:2, 3]])
+    ax.plot(pts[:, 0], pts[:, 1], "o-", color=color, linewidth=2, markersize=3)
+
+
+def chapter_9():
+    """Figure 9.1: reaching beyond the arm with different weights. Figure 9.2: sweep of the base weight."""
+    runs = {
+        "equal weights": mobile_run([1, 1, 1, 1, 1]),
+        "base weight 10": mobile_run([10, 10, 1, 1, 1]),
+        "base weight 10 + elbow limit": mobile_run([10, 10, 1, 1, 1], elbow_limit=True),
+    }
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4.6))
+    for k, (name, (robot, r)) in enumerate(runs.items()):
+        ax[0].plot(r.q[:, 0], r.q[:, 1], color=f"C{k}", linewidth=1.5, label=f"base, {name}")
+        ax[0].plot(r.ee_position[:, 0], r.ee_position[:, 1], color=f"C{k}", linestyle=":", linewidth=1.2)
+        draw_mobile_top(ax[0], robot, r.q[-1], f"C{k}")
+        w = [arm_manipulability(robot, q) for q in r.q]
+        ax[1].semilogy(r.t, w, color=f"C{k}", label=name)
+    draw_mobile_top(ax[0], robot, r.q[0], "0.5")
+    ax[0].plot(2.0, 1.0, "r*", markersize=14, zorder=5)
+    ax[0].set_aspect("equal")
+    ax[0].set_xlim(-0.4, 2.5)
+    ax[0].set_ylim(-0.5, 1.4)
+    ax[0].set_xlabel("x [m]")
+    ax[0].set_ylabel("y [m]")
+    ax[0].set_title("top view: base path (solid), end-effector path (dotted)")
+    ax[0].legend(fontsize=7, loc="lower right")
+    ax[1].set_title(r"arm manipulability $\sqrt{\det J_a J_a^T}$ (position rows)")
+    ax[1].set_xlabel("t [s]")
+    ax[1].legend(fontsize=8)
+    save(fig, "09_mobile_reach.png")
+
+    ratios = np.logspace(-2, 2, 17)
+    base_path, base_turn, arm_travel = [], [], []
+    for w in ratios:  # a target the arm could reach alone, so the weight really chooses
+        robot, r = mobile_run([w, w, 1, 1, 1], elbow_limit=True, target=(0.4, 0.3, 0.35))
+        base_path.append(np.sum(np.linalg.norm(np.diff(r.q[:, :2], axis=0), axis=1)))
+        base_turn.append(np.abs(np.diff(r.q[:, 2])).sum())
+        arm_travel.append(np.abs(np.diff(r.q[:, 3:], axis=0)).sum())
+    fig, ax = plt.subplots(figsize=(6, 3.6))
+    ax.semilogx(ratios, base_path, "o-", label="base driving [m]")
+    ax.semilogx(ratios, base_turn, "^-", label="base turning [rad]")
+    ax.semilogx(ratios, arm_travel, "s-", label=r"arm joint travel $\sum_i\int|\dot q_i|dt$ [rad]")
+    ax.set_xlabel("base weight (arm weight 1)")
+    ax.set_title("target within the arm's reach: who does the work")
+    ax.legend(fontsize=8)
+    save(fig, "09_weight_sweep.png")
+
+
+CHAPTERS = {1: chapter_1, 2: chapter_2, 3: chapter_3, 4: chapter_4, 5: chapter_5, 6: chapter_6, 7: chapter_7, 8: chapter_8, 9: chapter_9}
 
 
 def main(argv):

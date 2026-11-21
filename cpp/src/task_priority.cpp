@@ -31,21 +31,30 @@ Eigen::MatrixXd hierarchy_projector(const std::vector<PriorityLevel>& levels, in
 
 Eigen::VectorXd task_priority_velocity(const std::vector<PriorityLevel>& levels, int n,
                                        const PriorityConfig& config) {
-    Eigen::VectorXd u = Eigen::VectorXd::Zero(n);
+    // Weighted case, eq. (9.8): substitute u = D y with D = W^-1/2, solve the unweighted hierarchy for y with
+    // the Jacobians J D, and map back. Minimising |y|^2 is minimising u^T W u.
+    Eigen::VectorXd d = Eigen::VectorXd::Ones(n);
+    if (config.weights.size() > 0) {
+        if (config.weights.size() != n || (config.weights.array() <= 0.0).any())
+            throw std::invalid_argument("task priority: weights must be n positive numbers");
+        d = config.weights.cwiseSqrt().cwiseInverse();
+    }
+    Eigen::VectorXd y = Eigen::VectorXd::Zero(n);
     Eigen::MatrixXd P = Eigen::MatrixXd::Identity(n, n);
     for (const PriorityLevel& level : levels) {
         check_level(level, n);
-        const Eigen::MatrixXd J_bar = level.J * P;
+        const Eigen::MatrixXd J = level.J * d.asDiagonal();
+        const Eigen::MatrixXd J_bar = J * P;
         if (config.method == PriorityMethod::Recursive) {
             // Eq. (7.5): correct what the higher levels leave of this task, inside their null space.
-            u += generalized_inverse(J_bar, config.inverse, config.damping) * (level.v - level.J * u);
+            y += generalized_inverse(J_bar, config.inverse, config.damping) * (level.v - J * y);
         } else {
             // Eq. (7.10): invert the task alone, then project.
-            u += P * generalized_inverse(level.J, config.inverse, config.damping) * level.v;
+            y += P * generalized_inverse(J, config.inverse, config.damping) * level.v;
         }
         P -= pseudoinverse(J_bar) * J_bar;  // eq. (7.6), always with the exact pseudoinverse
     }
-    return saturate(u, config.max_speed);
+    return saturate(d.asDiagonal() * y, config.max_speed);
 }
 
 Eigen::VectorXd task_priority_step(const RobotModel& model, const Eigen::VectorXd& q, const TaskList& tasks,

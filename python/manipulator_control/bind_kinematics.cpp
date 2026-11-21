@@ -71,4 +71,6 @@ void bind_kinematics(py::module_& m) {
     robots.def("planar", &mc::robots::planar, py::arg("lengths"), "Planar arm with revolute joints.");
     robots.def("puma560", &mc::robots::puma560, "PUMA 560, standard DH parameters.");
     robots.def("stanford", &mc::robots::stanford, "Stanford-type arm (RRP + spherical wrist).");
+    robots.def("anthropomorphic", &mc::robots::anthropomorphic, py::arg("d1") = 0.1, py::arg("a2") = 0.3,
+                py::arg("a3") = 0.25, "Anthropomorphic (elbow) arm with three revolute joints.");
 }
