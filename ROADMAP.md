@@ -8,6 +8,6 @@ Chapters follow `docs/CHAPTER_PLAN.md`; each finished chapter has its theory tex
 - [x] 04 Resolved-rate motion control
 - [x] 05 Singularities
 - [x] 06 Redundancy and null space
-- [ ] 07 Task-priority control
+- [x] 07 Task-priority control
 - [ ] 08 Inequality tasks
 - [ ] 09 Mobile manipulators

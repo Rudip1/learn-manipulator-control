@@ -267,7 +267,76 @@ def chapter_6():
     save(fig, "06_gradient_projection.png")
 
 
-CHAPTERS = {1: chapter_1, 2: chapter_2, 3: chapter_3, 4: chapter_4, 5: chapter_5, 6: chapter_6}
+def algorithmic_singularity_runs():
+    """Section 7.4: hold the tip of the three-link arm and drive q1 to 1.7 rad (at most 1.479 is reachable)."""
+    arm = mc.robots.planar([0.5, 0.4, 0.3])
+    model = mc.SerialArmModel(arm)
+    q0 = np.array([0.3, 0.7, 0.6])
+    configs = {
+        "recursive, pseudoinverse": mc.PriorityConfig(),
+        r"recursive, DLS $\lambda = 0.05$": mc.PriorityConfig(inverse=mc.InverseMethod.DampedLeastSquares,
+                                                               damping=0.05),
+        "singularity-robust (7.10)": mc.PriorityConfig(method=mc.PriorityMethod.SingularityRobust),
+    }
+    runs = {}
+    for name, cfg in configs.items():
+        tip = mc.FrameTask("tip", -1, [0, 1], arm.end_effector(q0))
+        joint = mc.JointTask("q1", 0, 1.7)
+        tip.set_gain(2.0)
+        joint.set_gain(2.0)
+        runs[name] = mc.simulate_task_priority(model, q0, [tip, joint], cfg, 0.01, 800)
+    return runs
+
+
+def chapter_7():
+    """Figure 7.1: the order of the tasks decides which one wins. Figure 7.2: algorithmic singularity."""
+    arm = mc.robots.planar([0.5, 0.4, 0.3])
+    model = mc.SerialArmModel(arm)
+    q0 = np.array([0.3, 0.7, 0.6])
+    T_tip, T_j3 = np.eye(4), np.eye(4)
+    T_tip[:2, 3] = [0.3, 0.75]
+    T_j3[:2, 3] = [0.55, 0.45]
+    fig, ax = plt.subplots(1, 3, figsize=(14, 4.2))
+    for k, order in enumerate(["tip, then joint 3", "joint 3, then tip"]):
+        tip = mc.FrameTask("tip", -1, [0, 1], T_tip)
+        j3 = mc.FrameTask("joint 3", 2, [0, 1], T_j3)
+        tip.set_gain(2.0)
+        j3.set_gain(2.0)
+        tasks = [tip, j3] if k == 0 else [j3, tip]
+        r = mc.simulate_task_priority(model, q0, tasks, mc.PriorityConfig(), 0.01, 800)
+        plotting.draw_planar_arm(ax[0], arm.frames(r.q[-1]), color=f"C{k}", label=order)
+        e_tip, e_j3 = (r.error_norm[:, 0], r.error_norm[:, 1]) if k == 0 else (r.error_norm[:, 1], r.error_norm[:, 0])
+        ax[1 + k].semilogy(r.t, np.maximum(e_tip, 1e-10), label="tip")
+        ax[1 + k].semilogy(r.t, np.maximum(e_j3, 1e-10), label="joint 3")
+        ax[1 + k].set_title(f"errors [m], priority: {order}")
+        ax[1 + k].set_xlabel("t [s]")
+        ax[1 + k].legend()
+    plotting.draw_planar_arm(ax[0], arm.frames(q0), color="0.6", alpha=0.6, label="start")
+    ax[0].plot(*T_tip[:2, 3], "r*", markersize=13, zorder=5)
+    ax[0].plot(*T_j3[:2, 3], "mP", markersize=11, zorder=5)
+    plotting.planar_axes(ax[0], limit=1.1, title="tip target (star), joint-3 target (plus)")
+    ax[0].legend(fontsize=8, loc="lower left")
+    save(fig, "07_priority_order.png")
+
+    runs = algorithmic_singularity_runs()
+    fig, ax = plt.subplots(1, 3, figsize=(14, 3.8))
+    for k, (name, r) in enumerate(runs.items()):
+        ax[0].plot(r.t, r.q[:, 0], color=f"C{k}", label=name)
+        ax[0].plot(r.t, r.q[:, 2], color=f"C{k}", linestyle="--")
+        ax[1].semilogy(r.t[:-1], np.abs(r.u[:-1]).max(axis=1), color=f"C{k}", label=name)
+        ax[2].semilogy(r.t, np.maximum(r.error_norm[:, 0], 1e-8), color=f"C{k}", label=name)
+    ax[0].axhline(1.479, color="0.5", linewidth=0.8)
+    ax[0].set_ylim(-1.0, 2.5)
+    ax[0].set_title("$q_1$ (solid) and $q_3$ (dashed) [rad]")
+    ax[1].set_title(r"max $|\dot q_i|$ [rad/s]")
+    ax[2].set_title("tip error (task 1) [m]")
+    for a in ax:
+        a.set_xlabel("t [s]")
+    ax[1].legend(fontsize=8)
+    save(fig, "07_algorithmic_singularity.png")
+
+
+CHAPTERS = {1: chapter_1, 2: chapter_2, 3: chapter_3, 4: chapter_4, 5: chapter_5, 6: chapter_6, 7: chapter_7}
 
 
 def main(argv):

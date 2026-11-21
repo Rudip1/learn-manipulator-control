@@ -18,6 +18,7 @@ add_executable(manipulator_control_tests
     test_resolved_rate.cpp
     test_singularities.cpp
     test_redundancy.cpp
+    test_task_priority.cpp
 )
 target_link_libraries(manipulator_control_tests PRIVATE manipulator_control Catch2::Catch2WithMain)
 catch_discover_tests(manipulator_control_tests)
