@@ -9,6 +9,7 @@ void bind_kinematics(py::module_& m);
 void bind_jacobian(py::module_& m);
 void bind_singularities(py::module_& m);
 void bind_resolved_rate(py::module_& m);
+void bind_redundancy(py::module_& m);
 
 PYBIND11_MODULE(_core, m) {
     m.doc() = "C++ core of manipulator_control (kinematics and kinematic control of manipulators)";
@@ -17,4 +18,5 @@ PYBIND11_MODULE(_core, m) {
     bind_jacobian(m);
     bind_singularities(m);
     bind_resolved_rate(m);
+    bind_redundancy(m);
 }

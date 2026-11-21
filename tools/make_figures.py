@@ -200,7 +200,74 @@ def chapter_5():
     save(fig, "05_wrist_singularity.png")
 
 
-CHAPTERS = {1: chapter_1, 2: chapter_2, 3: chapter_3, 4: chapter_4, 5: chapter_5}
+def redundancy_scenario():
+    """The three-link arm of section 6.5: start far from the middle of the joint ranges."""
+    arm = mc.robots.planar([0.5, 0.4, 0.3])
+    q_min, q_max = np.array([-np.pi / 2, -2.0, -2.0]), np.array([np.pi / 2, 2.0, 2.0])
+    q0 = np.array([1.2, -1.5, 1.6])
+    T_d = np.eye(4)
+    T_d[:2, 3] = [0.6, 0.5]
+    cfg = mc.ResolvedRateConfig(space=mc.TaskSpace.PlanarPosition, gain=2.0, dt=0.01, steps=1000)
+    return arm, q_min, q_max, q0, T_d, cfg
+
+
+def chapter_6():
+    """Figure 6.1: self-motion of a three-link arm. Figure 6.2: gradient projection with joint centering."""
+    arm = mc.robots.planar([0.5, 0.4, 0.3])
+    q, d, h = np.array([0.2, 0.9, -0.6]), np.array([0.0, 0.0, 1.0]), 2e-3
+    path = [q.copy()]
+    for k in range(20000):  # unit-speed walk along ker J, z = previous direction, until the loop closes
+        J = mc.geometric_jacobian(arm, q)[:2]
+        d = mc.null_space_projector(J) @ d
+        d /= np.linalg.norm(d)
+        q = q + h * d
+        path.append(q.copy())
+        if k > 500 and np.linalg.norm(q - path[0]) < 1e-2:
+            break
+    path = np.array(path)
+    fig, ax = plt.subplots(1, 2, figsize=(10, 4.2))
+    for i in np.linspace(0, len(path) - 1, 9).astype(int)[:-1]:
+        plotting.draw_planar_arm(ax[0], arm.frames(path[i]), color=plt.cm.viridis(i / len(path)), linewidth=2)
+    ax[0].plot(*arm.end_effector(path[0])[:2, 3], "r*", markersize=14, zorder=5)
+    plotting.planar_axes(ax[0], limit=1.25, title=r"self-motion $\dot q = N z$: same end-effector point")
+    s_arc = np.arange(len(path)) * h
+    for i in range(3):
+        ax[1].plot(s_arc, path[:, i], label=f"$q_{i + 1}$")
+    ax[1].set_xlabel(r"distance travelled in joint space $\int\|\dot q\|\,dt$ [rad]")
+    ax[1].set_ylabel("joint position [rad]")
+    ax[1].set_title("one full loop of the self-motion manifold")
+    ax[1].legend()
+    save(fig, "06_self_motion.png")
+
+    arm, q_min, q_max, q0, T_d, cfg = redundancy_scenario()
+    runs = {
+        "minimum norm": mc.RedundancyConfig(mc.SecondaryObjective.JointCentering, 0.0, q_min, q_max),
+        "joint centering, $k_0 = 20$": mc.RedundancyConfig(mc.SecondaryObjective.JointCentering, 20.0, q_min,
+                                                            q_max),
+        "not projected (wrong)": mc.RedundancyConfig(mc.SecondaryObjective.JointCentering, 20.0, q_min, q_max,
+                                                     project=False),
+    }
+    fig, ax = plt.subplots(1, 3, figsize=(14, 4))
+    for k, (name, red) in enumerate(runs.items()):
+        r = mc.simulate_redundancy(arm, q0, T_d, cfg, red)
+        tr = r.trajectory
+        if k < 2:
+            plotting.draw_planar_arm(ax[0], arm.frames(tr.q[-1]), color=f"C{k}", label=name)
+        ax[1].semilogy(tr.t, np.maximum(tr.error_norm, 1e-10), color=f"C{k}", label=name)
+        ax[2].plot(tr.t, r.objective, color=f"C{k}", label=name)
+    plotting.draw_planar_arm(ax[0], arm.frames(q0), color="0.6", alpha=0.6, label="start")
+    ax[0].plot(*T_d[:2, 3], "r*", markersize=14, zorder=5)
+    plotting.planar_axes(ax[0], limit=1.25, title="final configurations")
+    ax[0].legend(fontsize=8, loc="lower left")
+    ax[1].set_title("task error [m]")
+    ax[2].set_title("joint-centering cost $H(q)$")
+    for a in ax[1:]:
+        a.set_xlabel("t [s]")
+    ax[1].legend(fontsize=8)
+    save(fig, "06_gradient_projection.png")
+
+
+CHAPTERS = {1: chapter_1, 2: chapter_2, 3: chapter_3, 4: chapter_4, 5: chapter_5, 6: chapter_6}
 
 
 def main(argv):

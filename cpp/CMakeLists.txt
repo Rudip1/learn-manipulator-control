@@ -5,6 +5,7 @@ add_library(manipulator_control
     src/jacobian.cpp
     src/resolved_rate.cpp
     src/singularities.cpp
+    src/redundancy.cpp
 )
 add_library(manipulator_control::manipulator_control ALIAS manipulator_control)
 target_include_directories(manipulator_control PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

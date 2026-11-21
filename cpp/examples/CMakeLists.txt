@@ -4,6 +4,7 @@ foreach(example
     03_jacobian
     04_resolved_rate
     05_singularities
+    06_redundancy
 )
     add_executable(${example} ${example}.cpp)
     target_link_libraries(${example} PRIVATE manipulator_control)
