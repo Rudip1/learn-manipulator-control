@@ -9,6 +9,7 @@ add_library(manipulator_control
     src/robot_model.cpp
     src/tasks.cpp
     src/task_priority.cpp
+    src/inequality_tasks.cpp
 )
 add_library(manipulator_control::manipulator_control ALIAS manipulator_control)
 target_include_directories(manipulator_control PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

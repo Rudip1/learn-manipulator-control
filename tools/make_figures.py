@@ -336,7 +336,89 @@ def chapter_7():
     save(fig, "07_algorithmic_singularity.png")
 
 
-CHAPTERS = {1: chapter_1, 2: chapter_2, 3: chapter_3, 4: chapter_4, 5: chapter_5, 6: chapter_6, 7: chapter_7}
+def joint_limit_run(delta, with_limit=True, alpha=0.05):
+    """Section 8.4: the target of chapter 6 with q3 limited to +-1.7 rad."""
+    arm = mc.robots.planar([0.5, 0.4, 0.3])
+    model = mc.SerialArmModel(arm)
+    target = np.eye(4)
+    target[:2, 3] = [0.6, 0.5]
+    tip = mc.FrameTask("tip", -1, [0, 1], target)
+    tip.set_gain(2.0)
+    limit = mc.JointLimitTask("q3 limit", 2, -1.7, 1.7, alpha, delta)
+    limit.set_gain(0.5)
+    tasks = [limit, tip] if with_limit else [tip]
+    return mc.simulate_task_priority(model, np.array([1.2, -1.5, 1.6]), tasks, mc.PriorityConfig(), 0.01, 1000)
+
+
+def obstacle_scenario():
+    """Section 8.5: an obstacle on the path of the joint-3 point."""
+    arm = mc.robots.planar([0.5, 0.4, 0.3])
+    target = np.eye(4)
+    target[:2, 3] = [0.2, 0.75]
+    return arm, np.array([-0.4, 1.2, 0.8]), target, np.array([0.5205, 0.4496, 0.0]), 0.12
+
+
+def obstacle_run(with_obstacle=True):
+    arm, q0, target, c, radius = obstacle_scenario()
+    tip = mc.FrameTask("tip", -1, [0, 1], target)
+    tip.set_gain(2.0)
+    obstacle = mc.ObstacleTask("obstacle", 2, c, radius, 0.03, 0.08, True)
+    obstacle.set_gain(0.5)
+    tasks = [obstacle, tip] if with_obstacle else [tip]
+    return mc.simulate_task_priority(mc.SerialArmModel(arm), q0, tasks, mc.PriorityConfig(), 0.01, 800)
+
+
+def chapter_8():
+    """Figure 8.1: joint limit with and without hysteresis. Figure 8.2: obstacle avoidance."""
+    runs = {
+        "no limit task": joint_limit_run(0.15, with_limit=False),
+        r"limit, $\alpha = 0.05$, $\delta = 0.15$": joint_limit_run(0.15),
+        r"limit, $\alpha = \delta = 0.05$ (no hysteresis)": joint_limit_run(0.05),
+    }
+    fig, ax = plt.subplots(1, 3, figsize=(14, 3.8))
+    for k, (name, r) in enumerate(runs.items()):
+        ax[0].plot(r.t, r.q[:, 2], color=f"C{k}", label=name)
+        ax[2].semilogy(r.t, np.maximum(r.error_norm[:, -1], 1e-10), color=f"C{k}", label=name)
+        if k > 0:
+            ax[1].step(r.t, r.active[:, 0] + 1.2 * (k - 1), where="post", color=f"C{k}", label=name)
+    ax[0].axhline(1.7, color="k", linewidth=1)
+    ax[0].axhspan(1.65, 1.7, color="0.85")
+    ax[0].set_title("$q_3$ [rad] (limit 1.7, grey: activation band)")
+    ax[1].set_title("limit task active")
+    ax[1].set_yticks([])
+    ax[2].set_title("tip error [m]")
+    for a in ax:
+        a.set_xlabel("t [s]")
+    ax[0].legend(fontsize=8)
+    ax[1].legend(fontsize=8, loc="center right")
+    save(fig, "08_joint_limit.png")
+
+    arm, q0, target, c, radius = obstacle_scenario()
+    fig, ax = plt.subplots(1, 2, figsize=(10, 4.4))
+    for k, with_obstacle in enumerate([False, True]):
+        r = obstacle_run(with_obstacle)
+        p3 = np.array([arm.frames(q)[2][:2, 3] for q in r.q])
+        name = "with obstacle task" if with_obstacle else "without"
+        ax[0].plot(p3[:, 0], p3[:, 1], color=f"C{k}", linewidth=1, label=f"joint-3 path, {name}")
+        plotting.draw_planar_arm(ax[0], arm.frames(r.q[-1]), color=f"C{k}", alpha=0.8)
+        ax[1].plot(r.t, np.linalg.norm(p3 - c[:2], axis=1), color=f"C{k}", label=name)
+    plotting.draw_planar_arm(ax[0], arm.frames(q0), color="0.6", alpha=0.6)
+    ax[0].add_patch(plt.Circle(c[:2], radius, color="0.3", alpha=0.5))
+    ax[0].add_patch(plt.Circle(c[:2], radius + 0.03, color="0.3", fill=False, linestyle="--"))
+    ax[0].plot(*target[:2, 3], "r*", markersize=13, zorder=5)
+    plotting.planar_axes(ax[0], limit=1.0, title="obstacle (dashed: activation distance)")
+    ax[0].set_xlim(-0.2, 1.0)
+    ax[0].set_ylim(-0.2, 1.0)
+    ax[0].legend(fontsize=8, loc="lower left")
+    ax[1].axhline(radius, color="k", linewidth=1)
+    ax[1].axhspan(radius, radius + 0.03, color="0.85")
+    ax[1].set_title("distance of the joint-3 point from the obstacle centre [m]")
+    ax[1].set_xlabel("t [s]")
+    ax[1].legend()
+    save(fig, "08_obstacle.png")
+
+
+CHAPTERS = {1: chapter_1, 2: chapter_2, 3: chapter_3, 4: chapter_4, 5: chapter_5, 6: chapter_6, 7: chapter_7, 8: chapter_8}
 
 
 def main(argv):
