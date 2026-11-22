@@ -15,4 +15,3 @@ Validate kinematics against Pinocchio in tests.
 9. Mobile manipulators: base + arm as one kinematic system, weighting base vs arm motion.
 
 Used in: [vehicle-manipulator-task-priority](https://github.com/Rudip1/vehicle-manipulator-task-priority).
-Acknowledgement: chapters 8–9 grew out of joint work with Gebrecherkos Gebreslassie.

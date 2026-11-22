@@ -53,10 +53,6 @@ tools/         figure generator and notebook tooling
 * [vehicle-manipulator-task-priority](https://github.com/Rudip1/vehicle-manipulator-task-priority) — task-priority control of a mobile manipulator in ROS 2 and Gazebo, built on this library's C++.
 * [robotics-learning](https://github.com/Rudip1/robotics-learning) — the umbrella of all learn-* modules.
 
-## Acknowledgements
-
-Chapters 8–9 grew out of joint work with Gebrecherkos Gebreslassie.
-
 ## Licence
 
 Code: Apache-2.0 ([LICENSE](LICENSE)). Theory texts and figures in `1_theory/`: CC BY 4.0.

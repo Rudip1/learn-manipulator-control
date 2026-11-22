@@ -184,6 +184,3 @@ supplies the missing directions at the end effector.
    generation", *Int. J. Robotics Research* 22(7–8):565–581, 2003.
 7. A. De Luca, G. Oriolo, P. R. Giordano, "Kinematic modeling and redundancy resolution for nonholonomic mobile
    manipulators", *Proc. IEEE ICRA*, 1867–1873, 2006.
-
-*Acknowledgement: chapters 8–9 grew out of joint work with Gebrecherkos Gebreslassie on a mobile manipulator
-controlled by task priority.*
